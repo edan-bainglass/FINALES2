@@ -21,9 +21,12 @@ class ServerManager:
 
     def add_capability(self, capability_specs):
         """Adds new capability to the server."""
+        uuid_capability = capability_specs.get("uuid")
+        if uuid_capability is None:
+            uuid_capability = str(uuid.uuid4())
 
         capability_data = {
-            "uuid": str(uuid.uuid4()),
+            "uuid": uuid_capability,
             "quantity": capability_specs["quantity"],
             "method": capability_specs["method"],
             "specifications": json.dumps(
@@ -50,9 +53,13 @@ class ServerManager:
         for limitations in tenant_limitations:
             self.validate_limitations(limitations)
 
+        uuid_tenant = tenant_specs.get("uuid")
+        if uuid_tenant is None:
+            uuid_tenant = str(uuid.uuid4())
+
         is_active = 1
         tenant_data = {
-            "uuid": str(uuid.uuid4()),
+            "uuid": uuid_tenant,
             "name": tenant_specs["name"],
             "limitations": json.dumps(tenant_limitations),
             "contact_person": tenant_specs["contact_person"],
@@ -451,10 +458,20 @@ class ServerManager:
         return template_total
 
 
-def limitations_schema_translation(inputs_schema: Dict[str, Any]) -> Dict[str, Any]:
+def limitations_schema_translation(inputs_schema: Any) -> Dict[str, Any]:
     """
     Generates the limitations schema in a recursive way from parameters schema.
     """
+
+    # JSON Schema allows boolean subschemas (e.g. additionalProperties: true/false).
+    # Treat these as trivially permissive/restrictive without recursing.
+    if inputs_schema is True:
+        return {"additionalProperties": True}
+    if inputs_schema is False:
+        return {"additionalProperties": False}
+
+    if not isinstance(inputs_schema, dict):
+        return {"additionalProperties": False}
 
     # Trivial case: if there are no parameters, there can be no limitations.
     if len(inputs_schema) == 0:
@@ -665,8 +682,7 @@ def parse_schema_for_template(schema: dict, definitions: dict) -> Dict[str, Any]
                                 "$ref"
                             ].split("/")[-1]
                             sub_template = {
-                                f"{requirement}, "
-                                "str": parse_schema_for_template(
+                                f"{requirement}, str": parse_schema_for_template(
                                     definitions[detail_key],
                                     definitions=definitions,
                                 )

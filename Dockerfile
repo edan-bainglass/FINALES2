@@ -5,7 +5,7 @@ RUN apt-get update && \
     apt-get upgrade -y && \
     apt-get install -y git vim screen
 
-RUN conda install \
+RUN pip install \
     xarray \
     netCDF4 \
     bottleneck \

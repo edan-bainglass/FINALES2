@@ -4,9 +4,9 @@ version: "3"
 
 services:
   finales:
-    image: finales:v0.1
+    image: finales:v1.1.0
     ports:
-      - 8888:8888
+      - 8889:8889
     volumes:
       - finales_data:/root/data
     environment:

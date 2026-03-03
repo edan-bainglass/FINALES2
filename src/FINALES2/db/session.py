@@ -1,3 +1,4 @@
+import os
 import pathlib
 from contextlib import contextmanager
 from typing import Generator
@@ -8,6 +9,9 @@ from sqlalchemy.orm import sessionmaker
 
 def get_db_path():
     """Allowing easy access for the file path of the db file."""
+    env_path = os.getenv("FINALES_DB_FILEPATH")
+    if env_path:
+        return env_path
     DIRPATH_THIS = pathlib.Path(__file__).parent.resolve()
     return f"{DIRPATH_THIS}/sql_app.db"
 
