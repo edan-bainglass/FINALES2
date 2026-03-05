@@ -12,6 +12,42 @@ from FINALES2.server.schemas import Request
 from FINALES2.user_management.classes_user_manager import User
 
 
+def _login(func: Callable):
+    # Implemented using this tutorial as an example:
+    # https://realpython.com/primer-on-python-decorators/#is-the-user-logged-in
+    def _login_func(self, *args, **kwargs):
+        print("Logging in ...")
+        access_information = requests.post(
+            (
+                f"http://{self.FINALES_server_config.host}:"
+                f"{self.FINALES_server_config.port}/user_management/authenticate/"
+            ),
+            data={
+                "grant_type": "",
+                "username": f"{self.tenant_user.username}",
+                "password": f"{self.tenant_user.password}",
+                "scope": "",
+                "client_id": "",
+                "client_secret": "",
+            },
+            headers={
+                "accept": "application/json",
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+        )
+        access_information = access_information.json()
+        self.authorization_header = {
+            "accept": "application/json",
+            "Authorization": (
+                f"{access_information['token_type'].capitalize()} "
+                f"{access_information['access_token']}"
+            ),
+        }
+        return func(self, *args, **kwargs)
+
+    return _login_func
+
+
 class Tenant(BaseModel):
     """A class to represent a tenant for a FINALES run.
 
@@ -69,41 +105,6 @@ class Tenant(BaseModel):
             json.dump(output_dict, fp, indent=2)
 
         return
-
-    def _login(func: Callable):
-        # Impelemented using this tutorial as an example:
-        # https://realpython.com/primer-on-python-decorators/#is-the-user-logged-in
-        def _login_func(self, *args, **kwargs):
-            print("Logging in ...")
-            access_information = requests.post(
-                (
-                    f"http://{self.FINALES_server_config.host}:"
-                    f"{self.FINALES_server_config.port}/user_management/authenticate/"
-                ),
-                data={
-                    "grant_type": "",
-                    "username": f"{self.tenant_user.username}",
-                    "password": f"{self.tenant_user.password}",
-                    "scope": "",
-                    "client_id": "",
-                    "client_secret": "",
-                },
-                headers={
-                    "accept": "application/json",
-                    "Content-Type": "application/x-www-form-urlencoded",
-                },
-            )
-            access_information = access_information.json()
-            self.authorization_header = {
-                "accept": "application/json",
-                "Authorization": (
-                    f"{access_information['token_type'].capitalize()} "
-                    f"{access_information['access_token']}"
-                ),
-            }
-            return func(self, *args, **kwargs)
-
-        return _login_func
 
     def _checkQuantity(self, request: Request) -> bool:
         """This function checks, if a quantity in a request can be provided by the
@@ -187,14 +188,14 @@ class Tenant(BaseModel):
         selects the respective endpoint accordingly."""
         if "request" in req_res_dict.keys():
             obj_type = "request"
-            if type(new_status) != RequestStatus:
+            if not isinstance(new_status, RequestStatus):
                 raise ValueError(
                     f"Wrong status type. The type given is "
                     f"{type(new_status)} instead of RequestStatus."
                 )
         elif "result" in req_res_dict.keys():
             obj_type = "result"
-            if type(new_status) != ResultStatus:
+            if not isinstance(new_status, ResultStatus):
                 raise ValueError(
                     f"Wrong status type. The type given is "
                     f"{type(new_status)} instead of ResultStatus."
@@ -266,7 +267,7 @@ class Tenant(BaseModel):
 
     @_login
     def _get_pending_requests(self) -> list[dict]:
-        """This funciton collecte all the pending requests from the server.
+        """This function collects all the pending requests from the server.
 
         :return: a list of requests in JSON format
         :rtype: list[dict]
@@ -326,7 +327,7 @@ class Tenant(BaseModel):
         method: Union[str, None],
         request_id: Union[str, None] = None,
     ) -> Union[list, dict]:
-        """This function queries requests from the FINALES server. It my either provide
+        """This function queries requests from the FINALES server. It may either provide
         a list of requests, if quantity and method is given, or a single request, if a
         request_id and optionally quantity and method are given. If there is no
         request_id and either quantity or method is None, a ValueError is raised
