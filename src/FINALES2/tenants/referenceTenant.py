@@ -1,6 +1,7 @@
 import json
 import time
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Callable, Optional, Union, cast
 
 import requests
@@ -73,7 +74,7 @@ class Tenant(BaseModel):
 
     def tenant_object_to_json(self):
         """
-        Funciton for creating the json input file, which is to be forwarded to the admin
+        Function for creating the json input file, which is to be forwarded to the admin
         for registering a tenant.
 
         The uuid will be returned by the admin, which the user then will add to there
@@ -101,10 +102,10 @@ class Tenant(BaseModel):
             "contact_person": str([u.username for u in self.operators]),
         }
 
-        with open(f"{self.general_meta.name}_tenant.json", "w") as fp:
+        root = Path("schemas/serialized")
+        root.mkdir(exist_ok=True, parents=True)
+        with open(f"{root}/{self.general_meta.name}_tenant.json", "w") as fp:
             json.dump(output_dict, fp, indent=2)
-
-        return
 
     def _checkQuantity(self, request: Request) -> bool:
         """This function checks, if a quantity in a request can be provided by the
@@ -118,14 +119,14 @@ class Tenant(BaseModel):
         :rtype: bool
         """
         requestedQuantity = request.quantity
-        tenantQuantitites = self.quantities.keys()
-        return requestedQuantity in tenantQuantitites
+        tenantQuantities = self.quantities.keys()
+        return requestedQuantity in tenantQuantities
 
     def _checkMethods(self, request: Request, requestedQuantity: str) -> list[str]:
         """This function checks the methods in the request, if they are available in
         from the tenant and returns the names of the matching methods in a list.
 
-        :param request: the requrest, which needs to be checked for feasibility
+        :param request: the request, which needs to be checked for feasibility
         :type request: Request
         :param requestedQuantity: the quantity, which shall be determined
         :type requestedQuantity: str
